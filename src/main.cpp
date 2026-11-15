@@ -5,6 +5,7 @@
 #include <map>
 #include <set>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -83,8 +84,143 @@ public:
                 always = true;
                 lhs = trim(lhs.substr(2));
             } else if (!lhs.empty() && lhs[0] == '!') {
-                always = true;
-                lhs = trim(lhs.substr(1));
+                std::cerr << path.string() << ':' << lineNo
+                          << ": invalid target modifier; use '!            if (lhs.empty()) {
+                std::cerr << path.string() << ':' << lineNo << ": empty target name\n";
+                return false;
+            }
+            if (!targets.count(lhs)) order.push_back(lhs);
+            Target t;
+            t.name = lhs;
+            t.dependencies = words(expand(rhs));
+            t.always = always;
+            targets[lhs] = std::move(t);
+            current = &targets[lhs];
+        }
+        return true;
+    }
+
+    std::string expand(const std::string& input) const {
+        std::string out;
+        for (std::size_t i = 0; i < input.size();) {
+            if (input.compare(i, 2, "!#") == 0 && i + 2 < input.size() && input[i + 2] == '(') {
+                auto end = input.find(')', i + 3);
+                if (end == std::string::npos) {
+                    throw std::runtime_error("unterminated variable reference; expected '!#(NAME)'");
+                }
+                std::string key = input.substr(i + 3, end - (i + 3));
+                if (key.empty()) {
+                    throw std::runtime_error("empty variable reference; expected '!#(NAME)'");
+                }
+                auto it = variables.find(key);
+                if (it == variables.end()) {
+                    throw std::runtime_error("undefined variable '" + key + "'");
+                }
+                out += it->second;
+                i = end + 1;
+            } else {
+                out += input[i++];
+            }
+        }
+        return out;
+    }
+};
+
+class Builder {
+    BuildFile& build;
+    std::set<std::string> visiting;
+    std::set<std::string> completed;
+
+    static bool newerThan(const fs::path& output, const fs::path& input) {
+        std::error_code ec;
+        if (!fs::exists(output, ec) || !fs::exists(input, ec)) return true;
+        const auto outputTime = fs::last_write_time(output, ec);
+        if (ec) return true;
+        const auto inputTime = fs::last_write_time(input, ec);
+        if (ec) return true;
+        return inputTime > outputTime;
+    }
+
+public:
+    explicit Builder(BuildFile& b) : build(b) {}
+
+    bool run(const std::string& name) {
+        if (completed.count(name)) return true;
+        auto it = build.targets.find(name);
+        if (it == build.targets.end()) {
+            if (!fs::exists(name)) {
+                std::cerr << "ycomp: no rule to make target '" << name << "'\n";
+                return false;
+            }
+            return true;
+        }
+        if (visiting.count(name)) {
+            std::cerr << "ycomp: circular dependency involving '" << name << "'\n";
+            return false;
+        }
+        visiting.insert(name);
+        Target& target = it->second;
+        bool dirty = target.always || !fs::exists(target.name);
+        for (const auto& dep : target.dependencies) {
+            if (!run(dep)) return false;
+            if (fs::exists(target.name) && newerThan(target.name, dep)) dirty = true;
+        }
+        if (!target.commands.empty() && dirty) {
+            for (const auto& command : target.commands) {
+                const std::string expanded = build.expand(command);
+                std::cout << expanded << '\n';
+                std::cout.flush();
+                if (std::system(expanded.c_str()) != 0) {
+                    std::cerr << "ycomp: command failed for target '" << name << "'\n";
+                    return false;
+                }
+            }
+        } else if (!target.commands.empty() && !dirty) {
+            std::cout << "ycomp: '" << name << "' is up to date\n";
+        }
+        visiting.erase(name);
+        completed.insert(name);
+        return true;
+    }
+};
+
+int main(int argc, char** argv) {
+    fs::path file = "CompilFileY.compy";
+    std::string target;
+    for (int i = 1; i < argc; ++i) {
+        const std::string arg = argv[i];
+        if (arg == "-f" || arg == "--file") {
+            if (++i >= argc) {
+                std::cerr << "usage: ycomp [-f buildfile] [target]\n";
+                return 2;
+            }
+            file = argv[i];
+        } else if (arg == "-h" || arg == "--help") {
+            std::cout << "YComp - a small, make-like build tool\n"
+                         "usage: ycomp [-f buildfile] [target]\n"
+                         "default build file: CompilFileY.compy\n";
+            return 0;
+        } else if (target.empty()) {
+            target = arg;
+        } else {
+            std::cerr << "ycomp: unexpected argument '" << arg << "'\n";
+            return 2;
+        }
+    }
+
+    BuildFile build;
+    if (!build.load(file)) return 2;
+    if (build.order.empty()) {
+        std::cerr << "ycomp: build file contains no targets\n";
+        return 2;
+    }
+    if (target.empty()) target = build.order.front();
+
+    Builder builder(build);
+    return builder.run(target) ? 0 : 1;
+}
+ for always-build targets\\n";
+                return false;
             }
             if (lhs.empty()) {
                 std::cerr << path.string() << ':' << lineNo << ": empty target name\n";
