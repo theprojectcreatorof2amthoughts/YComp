@@ -6,8 +6,11 @@ file(REMOVE_RECURSE "${TEST_ROOT}")
 file(MAKE_DIRECTORY "${TEST_ROOT}")
 file(WRITE "${TEST_ROOT}/input.txt" "source\n")
 file(WRITE "${TEST_ROOT}/increment.cmake"
-"file(READ \"\${COUNT_FILE}\" count OPTIONAL)\n"
-"if(count STREQUAL \"\")\n  set(count 0)\nendif()\n"
+"if(EXISTS \"\${COUNT_FILE}\")\n"
+"  file(READ \"\${COUNT_FILE}\" count)\n"
+"else()\n"
+"  set(count 0)\n"
+"endif()\n"
 "math(EXPR count \"\${count} + 1\")\n"
 "file(WRITE \"\${COUNT_FILE}\" \"\${count}\")\n"
 "file(WRITE result.txt \"built\")\n")
