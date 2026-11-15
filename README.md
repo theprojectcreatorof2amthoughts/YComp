@@ -4,7 +4,7 @@ YComp is a small, make-like build system configured with **`CompilFileY.compy`**
 
 ## Build
 
-YComp requires a C++17 compiler and CMake.
+YComp requires a C++17 compiler and CMake. CI builds and runs integration tests on Linux, macOS, and Windows using the MSYS2 MinGW-w64 toolchain.
 
 ```sh
 cmake -S . -B build
@@ -48,4 +48,4 @@ Use `ycomp -f path/to/file.compy [target]` to select a different build file.
 
 ## Current scope
 
-This is the initial implementation: variables, target dependencies, recipes, default-target selection, cycle detection, and timestamp-based incremental builds. Recipes are passed to the system shell. More advanced features can be added as the format evolves.
+This is the initial implementation: variables, target dependencies, recipes, default-target selection, cycle detection, and timestamp-based incremental builds. Recipes are passed to the system command shell (`sh` on Unix-like systems and the configured shell on Windows). Undefined variables and malformed variable references produce explicit errors. More advanced features, including parallel dependency builds, can be added as the format evolves.
