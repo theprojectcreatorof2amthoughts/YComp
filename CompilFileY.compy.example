@@ -1,0 +1,11 @@
+SHY -> gshai
+SHYFLAG -> --shaywall --shaywextra --shayo2
+SRC -> main.shay
+
+!$all > test
+
+test > !#(SRC)
+	!#(SHY) !#(SHYFLAG) -o test !#(SRC)
+
+clr >
+	rm -f test
