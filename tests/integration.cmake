@@ -18,9 +18,9 @@ file(WRITE "${TEST_ROOT}/increment.cmake"
 file(WRITE "${TEST_ROOT}/CompilFileY.compy"
 "!$all > result.txt\n"
 "result.txt > input.txt\n"
-"\t\"\${CMAKE_COMMAND}\" -DCOUNT_FILE=count.txt -P increment.cmake\n"
+"\t\"${CMAKE_COMMAND}\" -DCOUNT_FILE=count.txt -P increment.cmake\n"
 "clr >\n"
-"\t\"\${CMAKE_COMMAND}\" -E rm -f result.txt count.txt\n")
+"\t\"${CMAKE_COMMAND}\" -E rm -f result.txt count.txt\n")
 
 execute_process(COMMAND "${YCOMP}" WORKING_DIRECTORY "${TEST_ROOT}"
                 RESULT_VARIABLE result OUTPUT_VARIABLE output ERROR_VARIABLE error)
