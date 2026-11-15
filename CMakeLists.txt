@@ -7,3 +7,13 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_executable(ycomp src/main.cpp)
 install(TARGETS ycomp RUNTIME DESTINATION bin)
+
+enable_testing()
+add_test(
+    NAME ycomp_integration
+    COMMAND ${CMAKE_COMMAND}
+        "-DYCOMP=$<TARGET_FILE:ycomp>"
+        "-DTEST_ROOT=${CMAKE_CURRENT_BINARY_DIR}/integration"
+        "-DCMAKE_COMMAND=${CMAKE_COMMAND}"
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/integration.cmake
+)
